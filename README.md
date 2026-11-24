@@ -32,3 +32,5 @@ already disabled cannot revive itself: enable it in the Actions tab.
 
 The only secret is `WORKLINES_TOKEN`: `enterprise-r-bots`, project read and
 write, org repositories read. Stored by the Founder.
+
+Sync test, to be removed.
