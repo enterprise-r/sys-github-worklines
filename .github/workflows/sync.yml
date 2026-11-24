@@ -1,0 +1,108 @@
+name: Sync
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+    - cron: '3 4 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: sync
+
+jobs:
+  # Re-enabling an active workflow resets GitHub's 60-day inactivity timer.
+  keepalive:
+    if: github.event.schedule == '3 4 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Keep the schedule enabled
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/$GITHUB_REPOSITORY/actions/workflows/sync.yml/enable"
+
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Sync Worklines Status
+        env:
+          GH_TOKEN: ${{ secrets.WORKLINES_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh api graphql -f query='
+            {
+              organization(login: "enterprise-r") {
+                projectV2(number: 3) {
+                  id
+                  field(name: "Status") {
+                    ... on ProjectV2SingleSelectField { id options { id name } }
+                  }
+                  items(first: 100, query: "is:pr is:open") {
+                    pageInfo { hasNextPage }
+                    nodes {
+                      id
+                      status: fieldValueByName(name: "Status") {
+                        ... on ProjectV2ItemFieldSingleSelectValue { optionId name }
+                      }
+                      content {
+                        ... on PullRequest {
+                          number
+                          state
+                          isDraft
+                          repository { name }
+                          commits(last: 1) { nodes { commit { committedDate } } }
+                          latestReviews(first: 100) { nodes { state submittedAt } }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }' > project.json
+
+          jq -e '.data.organization.projectV2.items.pageInfo.hasNextPage | not' project.json > /dev/null \
+            || echo '::warning::More than 100 open pull requests; only the first 100 are synced'
+
+          # One line per move: item id, option id, log line.
+          jq -r '
+            .data.organization.projectV2 as $p
+            | ($p.field.options | map({(.name): .id}) | add) as $o
+            | ["Todo", "In Progress", "Ready for review", "Needs Work", "Approved", "Done"]
+              | map(select($o[.] == null)) as $missing
+            | if $missing != [] then "::error::Missing Status option: \($missing | join(", "))\n" | halt_error(1) else . end
+            | $p.items.nodes[]
+            | select(.content.state == "OPEN")
+            | (.status.name // "") as $from
+            | ([.content.latestReviews.nodes[] | select(.state == "CHANGES_REQUESTED") | .submittedAt] | max) as $changes
+            | (.content.commits.nodes[0].commit.committedDate) as $commit
+            | (if $from == "Approved" or $from == "Done" then null
+               elif .content.isDraft then "In Progress"
+               elif $from == "" or $from == "Todo" or $from == "In Progress" then "Ready for review"
+               elif $from == "Needs Work" and $changes != null and $commit != null
+                 and ($commit | fromdateiso8601) > ($changes | fromdateiso8601) then "Ready for review"
+               else null end) as $to
+            | select($to != null and $to != $from)
+            | [.id, $o[$to], "\(.content.repository.name)#\(.content.number) \(if $from == "" then "No Status" else $from end) -> \($to)"]
+            | @tsv
+          ' project.json > moves.tsv
+
+          project=$(jq -r '.data.organization.projectV2.id' project.json)
+          field=$(jq -r '.data.organization.projectV2.field.id' project.json)
+          while IFS=$'\t' read -r item option line; do
+            # shellcheck disable=SC2016 # GraphQL variables, not shell
+            gh api graphql \
+              -f project="$project" -f item="$item" -f field="$field" -f option="$option" \
+              -f query='
+                mutation($project: ID!, $item: ID!, $field: ID!, $option: String!) {
+                  updateProjectV2ItemFieldValue(input: {
+                    projectId: $project, itemId: $item, fieldId: $field,
+                    value: { singleSelectOptionId: $option }
+                  }) { projectV2Item { id } }
+                }' > /dev/null
+            echo "$line"
+          done < moves.tsv

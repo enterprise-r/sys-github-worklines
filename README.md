@@ -1,0 +1,34 @@
+# sys-github-worklines
+
+Keeps the Status of open pull requests on the org Project
+[Worklines](https://github.com/orgs/enterprise-r/projects/3) in step with
+their draft state and new commits. Part of the GitHub system,
+[`sys-github`](https://github.com/enterprise-r/sys-github). Public for free
+Actions minutes on GitHub Free. Not mounted in the tree.
+
+## Sync
+
+`.github/workflows/sync.yml` runs every 5 minutes and on demand. It makes one
+GraphQL query for the open pull requests on the project, then one update per
+item that moves:
+
+| Pull request | Status | Moves to |
+|---|---|---|
+| draft | any but Approved, Done | In Progress |
+| not draft | Todo, In Progress, none | Ready for review |
+| not draft | Needs Work, last commit newer than the latest changes requested | Ready for review |
+| any | Approved, Done | stays |
+
+Options are looked up by name each run. A missing option fails the run. Each
+move logs `<repo>#<n> <from> -> <to>`.
+
+## Keepalive
+
+GitHub disables a scheduled workflow in a public repository after 60 days
+without activity. Once a day, at 04:03 UTC, and on demand, the `keepalive` job
+re-enables `sync.yml` through the API, which resets that timer without a
+commit. It uses the run's own token with only `actions: write`. A workflow
+already disabled cannot revive itself: enable it in the Actions tab.
+
+The only secret is `WORKLINES_TOKEN`: `enterprise-r-bots`, project read and
+write, org repositories read. Stored by the Founder.
