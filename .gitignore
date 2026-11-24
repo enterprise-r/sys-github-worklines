@@ -1,0 +1,14 @@
+# Default ignores for new projects.
+
+# Vim and Neovim swap files
+*.swp
+*.swo
+*.swn
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+
+# Local data at the repository root
+/.local/
