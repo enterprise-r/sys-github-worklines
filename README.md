@@ -4,11 +4,14 @@ Keeps the Status of open pull requests on the org Project
 [Worklines](https://github.com/orgs/enterprise-r/projects/3) in step with
 their draft state and new commits. Part of the GitHub system,
 [`sys-github`](https://github.com/enterprise-r/sys-github). Public for free
-Actions minutes on GitHub Free. Not mounted in the tree.
+Actions minutes on GitHub Free. An informal mount at
+`/r/sys/github/worklines`, not listed in `mani.yaml`.
 
 ## Sync
 
-`.github/workflows/sync.yml` runs every 5 minutes and on demand. It makes one
+`.github/workflows/sync.yml` runs hourly and on demand, until the schedule
+fires reliably. The schedule is best-effort: GitHub may skip or delay runs.
+Each run makes one
 GraphQL query for the open pull requests on the project, then one update per
 item that moves:
 
@@ -30,5 +33,6 @@ re-enables `sync.yml` through the API, which resets that timer without a
 commit. It uses the run's own token with only `actions: write`. A workflow
 already disabled cannot revive itself: enable it in the Actions tab.
 
-The only secret is `WORKLINES_TOKEN`: `enterprise-r-bots`, project read and
-write, org repositories read. Stored by the Founder.
+The only secret is `WORKLINES_TOKEN`: `enterprise-r-bots`, org projects
+read and write, and metadata, pull requests and contents read on all org
+repositories. Stored by the Founder.
