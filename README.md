@@ -9,8 +9,9 @@ Actions minutes on GitHub Free. An informal mount at
 
 ## Sync
 
-`.github/workflows/sync.yml` runs every 5 minutes and on demand. The
-schedule is best-effort: GitHub may skip or delay runs. Each run makes one
+`.github/workflows/sync.yml` runs hourly and on demand, until the schedule
+fires reliably. The schedule is best-effort: GitHub may skip or delay runs.
+Each run makes one
 GraphQL query for the open pull requests on the project, then one update per
 item that moves:
 
