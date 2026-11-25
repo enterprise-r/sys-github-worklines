@@ -32,5 +32,6 @@ re-enables `sync.yml` through the API, which resets that timer without a
 commit. It uses the run's own token with only `actions: write`. A workflow
 already disabled cannot revive itself: enable it in the Actions tab.
 
-The only secret is `WORKLINES_TOKEN`: `enterprise-r-bots`, project read and
-write, org repositories read. Stored by the Founder.
+The only secret is `WORKLINES_TOKEN`: `enterprise-r-bots`, org projects
+read and write, and metadata, pull requests and contents read on all org
+repositories. Stored by the Founder.
