@@ -4,7 +4,8 @@ Keeps the Status of open pull requests on the org Project
 [Worklines](https://github.com/orgs/enterprise-r/projects/3) in step with
 their draft state and new commits. Part of the GitHub system,
 [`sys-github`](https://github.com/enterprise-r/sys-github). Public for free
-Actions minutes on GitHub Free. Not mounted in the tree.
+Actions minutes on GitHub Free. An informal mount at
+`/r/sys/github/worklines`, not listed in `mani.yaml`.
 
 ## Sync
 
