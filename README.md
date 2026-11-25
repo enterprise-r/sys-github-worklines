@@ -8,7 +8,8 @@ Actions minutes on GitHub Free. Not mounted in the tree.
 
 ## Sync
 
-`.github/workflows/sync.yml` runs every 5 minutes and on demand. It makes one
+`.github/workflows/sync.yml` runs every 5 minutes and on demand. The
+schedule is best-effort: GitHub may skip or delay runs. Each run makes one
 GraphQL query for the open pull requests on the project, then one update per
 item that moves:
 
