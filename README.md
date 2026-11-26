@@ -32,3 +32,9 @@ already disabled cannot revive itself: enable it in the Actions tab.
 
 The only secret is `WORKLINES_TOKEN`: `enterprise-r-bots`, project read and
 write, org repositories read. Stored by the Founder.
+
+## Assign
+
+Public actions live at the repository root. The composite action at
+`assign/` assigns an issue or pull request opened with no assignee.
+Callers use `enterprise-r/sys-github-worklines/assign@main`.
